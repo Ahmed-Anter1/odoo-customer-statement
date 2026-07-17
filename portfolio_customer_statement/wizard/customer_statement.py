@@ -14,22 +14,18 @@ class CustomerStatementWizard(models.TransientModel):
     partner_id = fields.Many2one("res.partner", required=True)
     date_from = fields.Date(required=True)
     date_to = fields.Date(required=True, default=fields.Date.context_today)
+    company_currency_id = fields.Many2one("res.currency", default=lambda self: self.env.company.currency_id, readonly=True)
     line_ids = fields.One2many("portfolio.customer.statement.line", "wizard_id", readonly=True)
     file_data = fields.Binary(readonly=True)
     file_name = fields.Char(readonly=True)
 
-    def _validate_dates(self):
-        if self.date_from and self.date_to and self.date_from > self.date_to:
-            raise ValidationError(_("The start date must not be after the end date."))
-
     def _move_lines(self):
         self.ensure_one()
-        self._validate_dates()
+        if self.date_from and self.date_to and self.date_from > self.date_to:
+            raise ValidationError(_("The start date must not be after the end date."))
         return self.env["account.move.line"].search([
-            ("partner_id", "=", self.partner_id.id),
-            ("parent_state", "=", "posted"),
-            ("date", ">=", self.date_from),
-            ("date", "<=", self.date_to),
+            ("partner_id", "=", self.partner_id.id), ("parent_state", "=", "posted"),
+            ("date", ">=", self.date_from), ("date", "<=", self.date_to),
             ("account_id.account_type", "in", ("asset_receivable", "liability_payable")),
         ], order="date, id")
 
@@ -40,10 +36,7 @@ class CustomerStatementWizard(models.TransientModel):
         values = []
         for line in self._move_lines():
             running += line.debit - line.credit
-            values.append((0, 0, {
-                "date": line.date, "move_id": line.move_id.id, "label": line.name,
-                "debit": line.debit, "credit": line.credit, "balance": running,
-            }))
+            values.append((0, 0, {"date": line.date, "move_id": line.move_id.id, "label": line.name, "debit": line.debit, "credit": line.credit, "balance": running}))
         self.line_ids = values
         return {"type": "ir.actions.act_window", "res_model": self._name, "view_mode": "form", "res_id": self.id, "target": "new"}
 
