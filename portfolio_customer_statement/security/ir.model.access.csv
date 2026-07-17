@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_statement_wizard,statement.wizard,model_portfolio_customer_statement_wizard,account.group_account_user,1,1,1,1
+access_statement_line,statement.line,model_portfolio_customer_statement_line,account.group_account_user,1,1,1,1
